@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% block title %}Exhibitions | Museum Archive{% endblock %}
+{% block breadcrumb %}Exhibitions{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>
+      <span>📜</span>
+      <span>Special Exhibitions</span>
+    </h1>
+    <p>Seasonal showcases, traveling exhibits, and themed historical galleries</p>
+  </div>
+</div>
+
+<!-- Exhibition Form (Add / Edit) -->
+<div class="card" id="exhibitionFormCard">
+  <div class="card-header">
+    <h3 id="formTitle">{% if edit_exhibition %}Edit Exhibition #{{ edit_exhibition.exhibition_id }} - {{ edit_exhibition.title }}{% else %}Schedule New Exhibition{% endif %}</h3>
+  </div>
+  <div class="card-body">
+    <form id="exhibitionForm" method="POST" action="{% if edit_exhibition %}{{ url_for('edit_exhibition', exhibition_id=edit_exhibition.exhibition_id) }}{% else %}{{ url_for('add_exhibition') }}{% endif %}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="exhibition_id">
+            <span>Exhibition ID <span class="required">*</span></span>
+            <span class="helper">Unique primary key</span>
+          </label>
+          <input 
+            type="number" 
+            class="form-control" 
+            id="exhibition_id" 
+            name="exhibition_id" 
+            value="{% if edit_exhibition %}{{ edit_exhibition.exhibition_id }}{% endif %}"
+            placeholder="e.g. 2" 
+            required 
+            min="1"
+            {% if edit_exhibition %}readonly{% endif %}
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="title">
+            <span>Exhibition Title <span class="required">*</span></span>
+            <span class="helper">Event / Display theme</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="title" 
+            name="title" 
+            value="{% if edit_exhibition %}{{ edit_exhibition.title }}{% endif %}"
+            placeholder="e.g. Echoes of the Indus Civilization" 
+            required 
+            maxlength="100"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="start_date">
+            <span>Commencement Date</span>
+            <span class="helper">Start of public viewing</span>
+          </label>
+          <input 
+            type="date" 
+            class="form-control" 
+            id="start_date" 
+            name="start_date"
+            value="{% if edit_exhibition and edit_exhibition.start_date %}{{ edit_exhibition.start_date|format_date }}{% endif %}"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="end_date">
+            <span>Conclusion Date</span>
+            <span class="helper">End of public viewing</span>
+          </label>
+          <input 
+            type="date" 
+            class="form-control" 
+            id="end_date" 
+            name="end_date"
+            value="{% if edit_exhibition and edit_exhibition.end_date %}{{ edit_exhibition.end_date|format_date }}{% endif %}"
+          >
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('list_exhibitions') }}" class="btn btn-secondary" id="cancelEditBtn" style="{% if not edit_exhibition %}display: none;{% endif %}">Cancel Edit</a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span id="submitBtnText">{% if edit_exhibition %}Update Exhibition in MySQL{% else %}Schedule Exhibition in MySQL{% endif %}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table View -->
+<div class="card">
+  <div class="card-header">
+    <h3>Scheduled Exhibitions ({{ exhibitions|length }})</h3>
+    <form method="GET" action="{{ url_for('list_exhibitions') }}" class="filter-bar">
+      <div class="search-input-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          name="q" 
+          value="{{ search_query }}" 
+          class="search-input" 
+          placeholder="Search by exhibition title, date..."
+        >
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if search_query %}
+        <a href="{{ url_for('list_exhibitions') }}" class="btn btn-secondary btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Exhibition ID</th>
+          <th>Title</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Status</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if exhibitions %}
+          {% for e in exhibitions %}
+            <tr>
+              <td><span class="table-id-badge">#{{ e.exhibition_id }}</span></td>
+              <td><strong>{{ e.title }}</strong></td>
+              <td>{{ e.start_date|format_date }}</td>
+              <td>{{ e.end_date|format_date }}</td>
+              <td>
+                <span class="badge-tag badge-material">
+                  {% if e.start_date and e.end_date %}
+                    Scheduled
+                  {% else %}
+                    Active
+                  {% endif %}
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <div class="action-buttons" style="justify-content: flex-end;">
+                  <button 
+                    type="button" 
+                    class="btn-icon edit-exhibition-btn" 
+                    title="Edit Exhibition"
+                    data-id="{{ e.exhibition_id }}"
+                    data-title="{{ e.title|e }}"
+                    data-start="{{ '' if not e.start_date else e.start_date|format_date }}"
+                    data-end="{{ '' if not e.end_date else e.end_date|format_date }}"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-icon delete" 
+                    title="Delete Exhibition"
+                    onclick="confirmDelete('{{ url_for('delete_exhibition', exhibition_id=e.exhibition_id) }}', '{{ e.title|e }}')"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <h4>No exhibitions found</h4>
+                <p>{% if search_query %}No records match your query "{{ search_query }}".{% else %}No exhibitions scheduled yet.{% endif %}</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.edit-exhibition-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const id = this.getAttribute('data-id');
+      const title = this.getAttribute('data-title');
+      const start = this.getAttribute('data-start');
+      const end = this.getAttribute('data-end');
+
+      const form = document.getElementById('exhibitionForm');
+      form.action = `/exhibitions/edit/${id}`;
+      document.getElementById('formTitle').textContent = `Edit Exhibition #${id} - ${title}`;
+
+      const idInput = document.getElementById('exhibition_id');
+      idInput.value = id;
+      idInput.readOnly = true;
+
+      document.getElementById('title').value = title;
+      document.getElementById('start_date').value = start;
+      document.getElementById('end_date').value = end;
+
+      document.getElementById('submitBtnText').textContent = 'Update Exhibition in MySQL';
+      document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+
+      document.getElementById('exhibitionFormCard').scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+{% endblock %}

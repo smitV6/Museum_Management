@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block title %}Restoration Department | Museum Archive{% endblock %}
+{% block breadcrumb %}Restoration Department{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>
+      <span>🔬</span>
+      <span>Restoration & Conservation</span>
+    </h1>
+    <p>Track artifact preservation treatments, cataloging dates, and conservation costs</p>
+  </div>
+</div>
+
+<!-- Restoration Form (Add / Edit) -->
+<div class="card" id="restorationFormCard">
+  <div class="card-header">
+    <h3 id="formTitle">{% if edit_restoration %}Edit Restoration Log #{{ edit_restoration.restoration_id }}{% else %}Log New Conservation / Restoration{% endif %}</h3>
+  </div>
+  <div class="card-body">
+    <form id="restorationForm" method="POST" action="{% if edit_restoration %}{{ url_for('edit_restoration', restoration_id=edit_restoration.restoration_id) }}{% else %}{{ url_for('add_restoration') }}{% endif %}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="restoration_id">
+            <span>Restoration ID <span class="required">*</span></span>
+            <span class="helper">Unique primary key</span>
+          </label>
+          <input 
+            type="number" 
+            class="form-control" 
+            id="restoration_id" 
+            name="restoration_id" 
+            value="{% if edit_restoration %}{{ edit_restoration.restoration_id }}{% endif %}"
+            placeholder="e.g. 2" 
+            required 
+            min="1"
+            {% if edit_restoration %}readonly{% endif %}
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="date_catalog">
+            <span>Date Cataloged</span>
+            <span class="helper">Entry or inspection date</span>
+          </label>
+          <input 
+            type="date" 
+            class="form-control" 
+            id="date_catalog" 
+            name="date_catalog"
+            value="{% if edit_restoration and edit_restoration.date_catalog %}{{ edit_restoration.date_catalog|format_date }}{% endif %}"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="maintenance_cost">
+            <span>Maintenance Cost (DECIMAL 10,2)</span>
+            <span class="helper">Expenditure in local currency</span>
+          </label>
+          <input 
+            type="number" 
+            step="0.01" 
+            min="0"
+            class="form-control" 
+            id="maintenance_cost" 
+            name="maintenance_cost" 
+            value="{% if edit_restoration and edit_restoration.maintenance_cost is not none %}{{ edit_restoration.maintenance_cost }}{% endif %}"
+            placeholder="e.g. 15000.00"
+          >
+        </div>
+
+        <div class="form-group form-group-full">
+          <label class="form-label" for="description_for_restoration">
+            <span>Description for Restoration</span>
+            <span class="helper">Details of corrosion, cleaning, stabilization, or repair work</span>
+          </label>
+          <textarea 
+            class="form-control" 
+            id="description_for_restoration" 
+            name="description_for_restoration" 
+            placeholder="e.g. Micro-abrasive cleaning, chemical patination stabilization, protective wax coating applied."
+          >{% if edit_restoration %}{{ edit_restoration.description_for_restoration or '' }}{% endif %}</textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('list_restorations') }}" class="btn btn-secondary" id="cancelEditBtn" style="{% if not edit_restoration %}display: none;{% endif %}">Cancel Edit</a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span id="submitBtnText">{% if edit_restoration %}Update Log in MySQL{% else %}Log Restoration in MySQL{% endif %}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table View -->
+<div class="card">
+  <div class="card-header">
+    <h3>Conservation Logs ({{ restorations|length }})</h3>
+    <form method="GET" action="{{ url_for('list_restorations') }}" class="filter-bar">
+      <div class="search-input-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          name="q" 
+          value="{{ search_query }}" 
+          class="search-input" 
+          placeholder="Search by description, date, cost..."
+        >
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if search_query %}
+        <a href="{{ url_for('list_restorations') }}" class="btn btn-secondary btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Restoration ID</th>
+          <th>Catalog Date</th>
+          <th>Maintenance Cost</th>
+          <th>Restoration Description</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if restorations %}
+          {% for r in restorations %}
+            <tr>
+              <td><span class="table-id-badge">#{{ r.restoration_id }}</span></td>
+              <td>{{ r.date_catalog|format_date }}</td>
+              <td class="price-tag">{{ r.maintenance_cost|format_price }}</td>
+              <td>{{ r.description_for_restoration or '—' }}</td>
+              <td style="text-align: right;">
+                <div class="action-buttons" style="justify-content: flex-end;">
+                  <button 
+                    type="button" 
+                    class="btn-icon edit-restoration-btn" 
+                    title="Edit Restoration Log"
+                    data-id="{{ r.restoration_id }}"
+                    data-date="{{ '' if not r.date_catalog else r.date_catalog|format_date }}"
+                    data-cost="{{ '' if r.maintenance_cost is none else r.maintenance_cost }}"
+                    data-desc="{{ (r.description_for_restoration or '')|e }}"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-icon delete" 
+                    title="Delete Restoration Log"
+                    onclick="confirmDelete('{{ url_for('delete_restoration', restoration_id=r.restoration_id) }}', 'Log #{{ r.restoration_id }}')"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <h4>No restoration records found</h4>
+                <p>{% if search_query %}No records match your query "{{ search_query }}".{% else %}No restoration treatments logged yet.{% endif %}</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.edit-restoration-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const id = this.getAttribute('data-id');
+      const dateCat = this.getAttribute('data-date');
+      const cost = this.getAttribute('data-cost');
+      const desc = this.getAttribute('data-desc');
+
+      const form = document.getElementById('restorationForm');
+      form.action = `/restoration/edit/${id}`;
+      document.getElementById('formTitle').textContent = `Edit Restoration Log #${id}`;
+
+      const idInput = document.getElementById('restoration_id');
+      idInput.value = id;
+      idInput.readOnly = true;
+
+      document.getElementById('date_catalog').value = dateCat;
+      document.getElementById('maintenance_cost').value = cost;
+      document.getElementById('description_for_restoration').value = desc;
+
+      document.getElementById('submitBtnText').textContent = 'Update Log in MySQL';
+      document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+
+      document.getElementById('restorationFormCard').scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+{% endblock %}

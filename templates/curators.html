@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block title %}Curators | Museum Archive{% endblock %}
+{% block breadcrumb %}Curators{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>
+      <span>🎓</span>
+      <span>Curatorial Staff</span>
+    </h1>
+    <p>Academic specialists, collection managers, and preservation overseers</p>
+  </div>
+</div>
+
+<!-- Curator Form (Add / Edit) -->
+<div class="card" id="curatorFormCard">
+  <div class="card-header">
+    <h3 id="formTitle">{% if edit_curator %}Edit Curator #{{ edit_curator.curator_id }} - {{ edit_curator.name }}{% else %}Register New Curator{% endif %}</h3>
+  </div>
+  <div class="card-body">
+    <form id="curatorForm" method="POST" action="{% if edit_curator %}{{ url_for('edit_curator', curator_id=edit_curator.curator_id) }}{% else %}{{ url_for('add_curator') }}{% endif %}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="curator_id">
+            <span>Curator ID <span class="required">*</span></span>
+            <span class="helper">Unique primary key</span>
+          </label>
+          <input 
+            type="number" 
+            class="form-control" 
+            id="curator_id" 
+            name="curator_id" 
+            value="{% if edit_curator %}{{ edit_curator.curator_id }}{% endif %}"
+            placeholder="e.g. 2" 
+            required 
+            min="1"
+            {% if edit_curator %}readonly{% endif %}
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="name">
+            <span>Curator Full Name <span class="required">*</span></span>
+            <span class="helper">Full legal / academic name</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="name" 
+            name="name" 
+            value="{% if edit_curator %}{{ edit_curator.name }}{% endif %}"
+            placeholder="e.g. Dr. Priya Sharma" 
+            required 
+            maxlength="100"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="qualification">
+            <span>Academic Qualification</span>
+            <span class="helper">Degrees, specialization, or doctorate</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="qualification" 
+            name="qualification" 
+            value="{% if edit_curator %}{{ edit_curator.qualification or '' }}{% endif %}"
+            placeholder="e.g. Ph.D. Archaeology & Epigraphy" 
+            maxlength="100"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="phone_number">
+            <span>Phone Number</span>
+            <span class="helper">Contact line</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="phone_number" 
+            name="phone_number" 
+            value="{% if edit_curator %}{{ edit_curator.phone_number or '' }}{% endif %}"
+            placeholder="e.g. 9820011223" 
+            maxlength="20"
+          >
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('list_curators') }}" class="btn btn-secondary" id="cancelEditBtn" style="{% if not edit_curator %}display: none;{% endif %}">Cancel Edit</a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span id="submitBtnText">{% if edit_curator %}Update Curator in MySQL{% else %}Add Curator to MySQL{% endif %}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table View -->
+<div class="card">
+  <div class="card-header">
+    <h3>Staff Registry ({{ curators|length }})</h3>
+    <form method="GET" action="{{ url_for('list_curators') }}" class="filter-bar">
+      <div class="search-input-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          name="q" 
+          value="{{ search_query }}" 
+          class="search-input" 
+          placeholder="Search by name, qualification, phone..."
+        >
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if search_query %}
+        <a href="{{ url_for('list_curators') }}" class="btn btn-secondary btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Curator ID</th>
+          <th>Name</th>
+          <th>Qualification</th>
+          <th>Phone Number</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if curators %}
+          {% for c in curators %}
+            <tr>
+              <td><span class="table-id-badge">#{{ c.curator_id }}</span></td>
+              <td><strong>{{ c.name }}</strong></td>
+              <td>{{ c.qualification or '—' }}</td>
+              <td>{{ c.phone_number or '—' }}</td>
+              <td style="text-align: right;">
+                <div class="action-buttons" style="justify-content: flex-end;">
+                  <button 
+                    type="button" 
+                    class="btn-icon edit-curator-btn" 
+                    title="Edit Curator"
+                    data-id="{{ c.curator_id }}"
+                    data-name="{{ c.name|e }}"
+                    data-qual="{{ (c.qualification or '')|e }}"
+                    data-phone="{{ (c.phone_number or '')|e }}"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-icon delete" 
+                    title="Delete Curator"
+                    onclick="confirmDelete('{{ url_for('delete_curator', curator_id=c.curator_id) }}', '{{ c.name|e }}')"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <h4>No curators found</h4>
+                <p>{% if search_query %}No records match your query "{{ search_query }}".{% else %}No curators registered yet.{% endif %}</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.edit-curator-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const id = this.getAttribute('data-id');
+      const name = this.getAttribute('data-name');
+      const qual = this.getAttribute('data-qual');
+      const phone = this.getAttribute('data-phone');
+
+      const form = document.getElementById('curatorForm');
+      form.action = `/curators/edit/${id}`;
+      document.getElementById('formTitle').textContent = `Edit Curator #${id} - ${name}`;
+
+      const idInput = document.getElementById('curator_id');
+      idInput.value = id;
+      idInput.readOnly = true;
+
+      document.getElementById('name').value = name;
+      document.getElementById('qualification').value = qual;
+      document.getElementById('phone_number').value = phone;
+
+      document.getElementById('submitBtnText').textContent = 'Update Curator in MySQL';
+      document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+
+      document.getElementById('curatorFormCard').scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+{% endblock %}

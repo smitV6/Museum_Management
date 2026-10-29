@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% block title %}Edit Artifact #{{ artifact.artifact_id }} | Museum Archive{% endblock %}
+{% block breadcrumb %}
+<a href="{{ url_for('list_artifacts') }}">Artifacts</a> / Edit #{{ artifact.artifact_id }}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>
+      <span>✏️</span>
+      <span>Edit Artifact #{{ artifact.artifact_id }}</span>
+    </h1>
+    <p>Modify specimen details, gallery allocation, curator assignment, and appraisal</p>
+  </div>
+  <div class="header-actions">
+    <a href="{{ url_for('list_artifacts') }}" class="btn btn-secondary">
+      &larr; Back to Artifacts List
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Update Artifact Record</h3>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('edit_artifact', artifact_id=artifact.artifact_id) }}">
+      <div class="form-grid">
+        <!-- Artifact ID (Immutable Primary Key) -->
+        <div class="form-group">
+          <label class="form-label" for="artifact_id">
+            <span>Artifact ID</span>
+            <span class="helper">Primary key (cannot be modified)</span>
+          </label>
+          <input 
+            type="number" 
+            class="form-control" 
+            id="artifact_id" 
+            name="artifact_id" 
+            value="{{ artifact.artifact_id }}" 
+            readonly
+          >
+        </div>
+
+        <!-- Name -->
+        <div class="form-group">
+          <label class="form-label" for="name">
+            <span>Artifact Name <span class="required">*</span></span>
+            <span class="helper">Historical title / label</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="name" 
+            name="name" 
+            value="{{ artifact.name }}" 
+            required 
+            maxlength="100"
+          >
+        </div>
+
+        <!-- Material -->
+        <div class="form-group">
+          <label class="form-label" for="material">
+            <span>Material Composition</span>
+            <span class="helper">e.g. Bronze, Marble, Terracotta</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="material" 
+            name="material" 
+            value="{{ artifact.material or '' }}" 
+            maxlength="100"
+          >
+        </div>
+
+        <!-- Valuation -->
+        <div class="form-group">
+          <label class="form-label" for="value">
+            <span>Estimated Value</span>
+            <span class="helper">Numeric appraisal (DECIMAL 12,2)</span>
+          </label>
+          <input 
+            type="number" 
+            step="0.01" 
+            min="0"
+            class="form-control" 
+            id="value" 
+            name="value" 
+            value="{{ artifact.value if artifact.value is not none else '' }}"
+          >
+        </div>
+
+        <!-- Origin -->
+        <div class="form-group">
+          <label class="form-label" for="origin">
+            <span>Geographic Origin</span>
+            <span class="helper">Civilization, Kingdom, or Country</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="origin" 
+            name="origin" 
+            value="{{ artifact.origin or '' }}" 
+            maxlength="100"
+          >
+        </div>
+
+        <!-- Age -->
+        <div class="form-group">
+          <label class="form-label" for="age">
+            <span>Estimated Age (Years)</span>
+            <span class="helper">Years since creation</span>
+          </label>
+          <input 
+            type="number" 
+            min="0"
+            class="form-control" 
+            id="age" 
+            name="age" 
+            value="{{ artifact.age if artifact.age is not none else '' }}"
+          >
+        </div>
+
+        <!-- Donor Dropdown -->
+        <div class="form-group">
+          <label class="form-label" for="donor_id">
+            <span>Donor / Benefactor</span>
+            <span class="helper">Select registered donor</span>
+          </label>
+          <select class="form-control" id="donor_id" name="donor_id">
+            <option value="">-- No Donor (Direct Purchase / Excavation) --</option>
+            {% for d in donors %}
+              <option value="{{ d.donor_id }}" {% if artifact.donor_id == d.donor_id %}selected{% endif %}>
+                {{ d.name }} (ID #{{ d.donor_id }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Curator Dropdown -->
+        <div class="form-group">
+          <label class="form-label" for="curator_id">
+            <span>Assigned Curator</span>
+            <span class="helper">Staff member managing this piece</span>
+          </label>
+          <select class="form-control" id="curator_id" name="curator_id">
+            <option value="">-- Unassigned --</option>
+            {% for c in curators %}
+              <option value="{{ c.curator_id }}" {% if artifact.curator_id == c.curator_id %}selected{% endif %}>
+                {{ c.name }} ({{ c.qualification or 'Curator' }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Gallery Dropdown -->
+        <div class="form-group">
+          <label class="form-label" for="gallery_id">
+            <span>Display Gallery</span>
+            <span class="helper">Current exhibition hall</span>
+          </label>
+          <select class="form-control" id="gallery_id" name="gallery_id">
+            <option value="">-- Storage / Not on Display --</option>
+            {% for g in galleries %}
+              <option value="{{ g.gallery_id }}" {% if artifact.gallery_id == g.gallery_id %}selected{% endif %}>
+                {{ g.name }} (Floor {{ g.floor_number or 'G' }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Exhibition Dropdown -->
+        <div class="form-group">
+          <label class="form-label" for="exhibition_id">
+            <span>Special Exhibition</span>
+            <span class="helper">Assign to active showcase</span>
+          </label>
+          <select class="form-control" id="exhibition_id" name="exhibition_id">
+            <option value="">-- None (Permanent Collection) --</option>
+            {% for e in exhibitions %}
+              <option value="{{ e.exhibition_id }}" {% if artifact.exhibition_id == e.exhibition_id %}selected{% endif %}>
+                {{ e.title }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Restoration Record Dropdown -->
+        <div class="form-group form-group-full">
+          <label class="form-label" for="restoration_id">
+            <span>Conservation / Restoration Department Record</span>
+            <span class="helper">Link to maintenance logs</span>
+          </label>
+          <select class="form-control" id="restoration_id" name="restoration_id">
+            <option value="">-- No Active Restoration Work --</option>
+            {% for r in restorations %}
+              <option value="{{ r.restoration_id }}" {% if artifact.restoration_id == r.restoration_id %}selected{% endif %}>
+                Log #{{ r.restoration_id }}: {{ (r.description_for_restoration[:80] ~ '...') if r.description_for_restoration else 'No description' }} ({{ r.date_catalog|format_date }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('list_artifacts') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span>Update Artifact in MySQL</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
