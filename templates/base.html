@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Digital Museum Archive and Historical Heritage Management System">
+  <title>{% block title %}Museum Management System{% endblock %} | Digital Archive</title>
+  
+  <!-- Fonts: Cinzel for classical museum aesthetics, Inter for clean administrative readability -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon">🏛️</div>
+        <div>
+          <div class="brand-title">MUSEUM ARCHIVE</div>
+          <div class="brand-subtitle">Heritage & Collection DB</div>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Overview</div>
+        <a href="{{ url_for('dashboard') }}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+        
+        <div class="nav-section-title">Core Catalog</div>
+        <a href="{{ url_for('list_artifacts') }}" class="nav-link {% if active_page == 'artifacts' %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          <span>Artifacts</span>
+        </a>
+        
+        <a href="{{ url_for('list_museums') }}" class="nav-link {% if active_page == 'museums' %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18"></path>
+            <path d="M5 21V10"></path>
+            <path d="M19 21V10"></path>
+            <path d="M9 21V10"></path>
+            <path d="M15 21V10"></path>
+            <path d="M2 10l10-7 10 7"></path>
+          </svg>
+          <span>Museums</span>
+        </a>
+        
+        <a href="{{ url_for('list_galleries') }}" class="nav-link {% if active_page == 'galleries' %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <span>Galleries</span>
+        </a>
+        
+        <div class="nav-section-title">Personnel & Patrons</div>
+        <a href="{{ url_for('list_curators') }}" class="nav-link {% if active_page == 'curators' %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Curators</span>
+        </a>
+        
+        <a href="{{ url_for('list_donors') }}" class="nav-link {% if active_page == 'donors' %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span>Donors</span>
+        </a>
+        
+        <div class="nav-section-title">Operations</div>
+        <a href="{{ url_for('list_exhibitions') }}" class="nav-link {% if active_page == 'exhibitions' %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Exhibitions</span>
+        </a>
+        
+        <a href="{{ url_for('list_restorations') }}" class="nav-link {% if active_page == 'restorations' %}active{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+          </svg>
+          <span>Restoration Dept</span>
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>MySQL Live</span>
+        </div>
+        <span style="font-family: var(--font-mono); font-size: 0.72rem;">v2.0</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Shell -->
+    <div class="main-wrapper">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle Sidebar Menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          
+          <div class="page-breadcrumb">
+            <span>Archive</span>
+            <span>/</span>
+            <span class="current">{% block breadcrumb %}Dashboard{% endblock %}</span>
+          </div>
+        </div>
+        
+        <div class="topbar-right">
+          <div class="db-badge" title="Active Connection">
+            <span class="status-dot"></span>
+            <span>museum_management</span>
+          </div>
+          
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Switch Theme (Dark/Light)" aria-label="Toggle dark/light mode">
+            <span id="themeIcon">☀️</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Flash & Content -->
+      <main class="content-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-container">
+              {% for category, message in messages %}
+                <div class="flash-alert {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="flash-close" onclick="this.parentElement.remove();">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Global Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal-card">
+      <h3>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        Confirm Deletion
+      </h3>
+      <p id="deleteConfirmMessage">Are you sure you want to permanently delete this record from the MySQL database? This action cannot be reversed.</p>
+      <form id="deleteConfirmForm" method="POST" action="">
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+          <button type="submit" class="btn btn-danger">Confirm Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Theme toggle handling
+    const htmlEl = document.documentElement;
+    const themeBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    
+    // Check saved preference or default to dark
+    const savedTheme = localStorage.getItem('museum_theme') || 'dark';
+    htmlEl.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    themeBtn.addEventListener('click', () => {
+      const current = htmlEl.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      htmlEl.setAttribute('data-theme', next);
+      localStorage.setItem('museum_theme', next);
+      updateThemeIcon(next);
+    });
+
+    function updateThemeIcon(theme) {
+      themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+
+    // Mobile sidebar toggle
+    const mobileBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
+    if (mobileBtn && sidebar) {
+      mobileBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('mobile-open');
+      });
+      // Close on backdrop click outside sidebar on small screens
+      document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !mobileBtn.contains(e.target)) {
+          sidebar.classList.remove('mobile-open');
+        }
+      });
+    }
+
+    // Modal delete confirmation helper
+    function confirmDelete(actionUrl, itemName) {
+      const modal = document.getElementById('deleteConfirmModal');
+      const form = document.getElementById('deleteConfirmForm');
+      const msg = document.getElementById('deleteConfirmMessage');
+      
+      form.action = actionUrl;
+      if (itemName) {
+        msg.textContent = `Are you sure you want to permanently remove "${itemName}" from the database? This change will directly update MySQL.`;
+      } else {
+        msg.textContent = 'Are you sure you want to permanently delete this record from the MySQL database? This action cannot be undone.';
+      }
+      modal.classList.add('active');
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteConfirmModal').classList.remove('active');
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

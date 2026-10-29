@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% block title %}Galleries & Wings | Museum Archive{% endblock %}
+{% block breadcrumb %}Galleries{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>
+      <span>🖼️</span>
+      <span>Galleries & Wings</span>
+    </h1>
+    <p>Configure exhibition halls, floor numbers, and museum associations</p>
+  </div>
+</div>
+
+<!-- Gallery Form (Add / Edit) -->
+<div class="card" id="galleryFormCard">
+  <div class="card-header">
+    <h3 id="formTitle">{% if edit_gallery %}Edit Gallery #{{ edit_gallery.gallery_id }} - {{ edit_gallery.name }}{% else %}Add New Gallery{% endif %}</h3>
+  </div>
+  <div class="card-body">
+    <form id="galleryForm" method="POST" action="{% if edit_gallery %}{{ url_for('edit_gallery', gallery_id=edit_gallery.gallery_id) }}{% else %}{{ url_for('add_gallery') }}{% endif %}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="gallery_id">
+            <span>Gallery ID <span class="required">*</span></span>
+            <span class="helper">Unique primary key</span>
+          </label>
+          <input 
+            type="number" 
+            class="form-control" 
+            id="gallery_id" 
+            name="gallery_id" 
+            value="{% if edit_gallery %}{{ edit_gallery.gallery_id }}{% endif %}"
+            placeholder="e.g. 103" 
+            required 
+            min="1"
+            {% if edit_gallery %}readonly{% endif %}
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="museum_id">
+            <span>Associated Museum</span>
+            <span class="helper">Museum housing this gallery</span>
+          </label>
+          <select class="form-control" id="museum_id" name="museum_id">
+            <option value="">-- No Museum Assigned --</option>
+            {% for m in museums %}
+              <option value="{{ m.museum_id }}" {% if edit_gallery and edit_gallery.museum_id == m.museum_id %}selected{% endif %}>
+                {{ m.name }} (ID #{{ m.museum_id }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="name">
+            <span>Gallery Name <span class="required">*</span></span>
+            <span class="helper">Wing / Hall designation</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="name" 
+            name="name" 
+            value="{% if edit_gallery %}{{ edit_gallery.name }}{% endif %}"
+            placeholder="e.g. Medieval Sculpture Hall" 
+            required 
+            maxlength="100"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="floor_number">
+            <span>Floor Number</span>
+            <span class="helper">Level in building (e.g. 1, 2, 3)</span>
+          </label>
+          <input 
+            type="number" 
+            class="form-control" 
+            id="floor_number" 
+            name="floor_number" 
+            value="{% if edit_gallery and edit_gallery.floor_number is not none %}{{ edit_gallery.floor_number }}{% endif %}"
+            placeholder="e.g. 2"
+          >
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('list_galleries') }}" class="btn btn-secondary" id="cancelEditBtn" style="{% if not edit_gallery %}display: none;{% endif %}">Cancel Edit</a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span id="submitBtnText">{% if edit_gallery %}Update Gallery in MySQL{% else %}Add Gallery to MySQL{% endif %}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table View -->
+<div class="card">
+  <div class="card-header">
+    <h3>Registered Galleries ({{ galleries|length }})</h3>
+    <form method="GET" action="{{ url_for('list_galleries') }}" class="filter-bar">
+      <div class="search-input-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          name="q" 
+          value="{{ search_query }}" 
+          class="search-input" 
+          placeholder="Search by gallery name, museum, floor..."
+        >
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if search_query %}
+        <a href="{{ url_for('list_galleries') }}" class="btn btn-secondary btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Gallery ID</th>
+          <th>Gallery Name</th>
+          <th>Floor Number</th>
+          <th>Associated Museum</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if galleries %}
+          {% for g in galleries %}
+            <tr>
+              <td><span class="table-id-badge">#{{ g.gallery_id }}</span></td>
+              <td><strong>{{ g.name }}</strong></td>
+              <td>Level {{ g.floor_number if g.floor_number is not none else 'N/A' }}</td>
+              <td>{{ g.museum_name or 'Unassigned' }}</td>
+              <td style="text-align: right;">
+                <div class="action-buttons" style="justify-content: flex-end;">
+                  <button 
+                    type="button" 
+                    class="btn-icon edit-gallery-btn" 
+                    title="Edit Gallery"
+                    data-id="{{ g.gallery_id }}"
+                    data-museum="{{ g.museum_id or '' }}"
+                    data-name="{{ g.name|e }}"
+                    data-floor="{{ '' if g.floor_number is none else g.floor_number }}"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-icon delete" 
+                    title="Delete Gallery"
+                    onclick="confirmDelete('{{ url_for('delete_gallery', gallery_id=g.gallery_id) }}', '{{ g.name|e }}')"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <h4>No galleries found</h4>
+                <p>{% if search_query %}No records match your query "{{ search_query }}".{% else %}No galleries cataloged yet.{% endif %}</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.edit-gallery-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const id = this.getAttribute('data-id');
+      const museumId = this.getAttribute('data-museum');
+      const name = this.getAttribute('data-name');
+      const floor = this.getAttribute('data-floor');
+
+      const form = document.getElementById('galleryForm');
+      form.action = `/galleries/edit/${id}`;
+      document.getElementById('formTitle').textContent = `Edit Gallery #${id} - ${name}`;
+
+      const idInput = document.getElementById('gallery_id');
+      idInput.value = id;
+      idInput.readOnly = true;
+
+      document.getElementById('museum_id').value = museumId || '';
+      document.getElementById('name').value = name;
+      document.getElementById('floor_number').value = floor;
+
+      document.getElementById('submitBtnText').textContent = 'Update Gallery in MySQL';
+      document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+
+      document.getElementById('galleryFormCard').scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+{% endblock %}

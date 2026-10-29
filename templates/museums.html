@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block title %}Museum Complexes | Museum Archive{% endblock %}
+{% block breadcrumb %}Museums{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>
+      <span>🏛️</span>
+      <span>Museum Complexes</span>
+    </h1>
+    <p>Manage institutions, geographical locations, and contact phone lines</p>
+  </div>
+</div>
+
+<!-- Museum Form (Add / Edit) -->
+<div class="card" id="museumFormCard">
+  <div class="card-header">
+    <h3 id="formTitle">{% if edit_museum %}Edit Museum #{{ edit_museum.museum_id }} - {{ edit_museum.name }}{% else %}Add New Museum{% endif %}</h3>
+  </div>
+  <div class="card-body">
+    <form id="museumForm" method="POST" action="{% if edit_museum %}{{ url_for('edit_museum', museum_id=edit_museum.museum_id) }}{% else %}{{ url_for('add_museum') }}{% endif %}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="museum_id">
+            <span>Museum ID <span class="required">*</span></span>
+            <span class="helper">Unique primary key</span>
+          </label>
+          <input 
+            type="number" 
+            class="form-control" 
+            id="museum_id" 
+            name="museum_id" 
+            value="{% if edit_museum %}{{ edit_museum.museum_id }}{% endif %}"
+            placeholder="e.g. 2" 
+            required 
+            min="1"
+            {% if edit_museum %}readonly{% endif %}
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="name">
+            <span>Museum Name <span class="required">*</span></span>
+            <span class="helper">Official title</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="name" 
+            name="name" 
+            value="{% if edit_museum %}{{ edit_museum.name }}{% endif %}"
+            placeholder="e.g. Chhatrapati Shivaji Maharaj Vastu Sangrahalaya" 
+            required 
+            maxlength="100"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="location">
+            <span>Location / City</span>
+            <span class="helper">Address or city</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="location" 
+            name="location" 
+            value="{% if edit_museum %}{{ edit_museum.location or '' }}{% endif %}"
+            placeholder="e.g. Fort, Mumbai" 
+            maxlength="200"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="contact_number">
+            <span>Contact Number</span>
+            <span class="helper">Official phone</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="contact_number" 
+            name="contact_number" 
+            value="{% if edit_museum %}{{ edit_museum.contact_number or '' }}{% endif %}"
+            placeholder="e.g. 022-22844484" 
+            maxlength="20"
+          >
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('list_museums') }}" class="btn btn-secondary" id="cancelEditBtn" style="{% if not edit_museum %}display: none;{% endif %}">Cancel Edit</a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span id="submitBtnText">{% if edit_museum %}Update Museum in MySQL{% else %}Add Museum to MySQL{% endif %}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table View -->
+<div class="card">
+  <div class="card-header">
+    <h3>Registered Museums ({{ museums|length }})</h3>
+    <form method="GET" action="{{ url_for('list_museums') }}" class="filter-bar">
+      <div class="search-input-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          name="q" 
+          value="{{ search_query }}" 
+          class="search-input" 
+          placeholder="Search by museum name, location, contact..."
+        >
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if search_query %}
+        <a href="{{ url_for('list_museums') }}" class="btn btn-secondary btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Museum ID</th>
+          <th>Museum Name</th>
+          <th>Location</th>
+          <th>Contact Number</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if museums %}
+          {% for m in museums %}
+            <tr>
+              <td><span class="table-id-badge">#{{ m.museum_id }}</span></td>
+              <td><strong>{{ m.name }}</strong></td>
+              <td>{{ m.location or '—' }}</td>
+              <td>{{ m.contact_number or '—' }}</td>
+              <td style="text-align: right;">
+                <div class="action-buttons" style="justify-content: flex-end;">
+                  <button 
+                    type="button" 
+                    class="btn-icon edit-museum-btn" 
+                    title="Edit Museum"
+                    data-id="{{ m.museum_id }}"
+                    data-name="{{ m.name|e }}"
+                    data-location="{{ (m.location or '')|e }}"
+                    data-contact="{{ (m.contact_number or '')|e }}"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-icon delete" 
+                    title="Delete Museum"
+                    onclick="confirmDelete('{{ url_for('delete_museum', museum_id=m.museum_id) }}', '{{ m.name|e }}')"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <h4>No museums found</h4>
+                <p>{% if search_query %}No records match your query "{{ search_query }}".{% else %}No museums registered yet.{% endif %}</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.edit-museum-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const id = this.getAttribute('data-id');
+      const name = this.getAttribute('data-name');
+      const location = this.getAttribute('data-location');
+      const contact = this.getAttribute('data-contact');
+
+      const form = document.getElementById('museumForm');
+      form.action = `/museums/edit/${id}`;
+      document.getElementById('formTitle').textContent = `Edit Museum #${id} - ${name}`;
+
+      const idInput = document.getElementById('museum_id');
+      idInput.value = id;
+      idInput.readOnly = true;
+
+      document.getElementById('name').value = name;
+      document.getElementById('location').value = location;
+      document.getElementById('contact_number').value = contact;
+
+      document.getElementById('submitBtnText').textContent = 'Update Museum in MySQL';
+      document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+
+      document.getElementById('museumFormCard').scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+{% endblock %}

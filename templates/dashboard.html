@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard | Museum Archive Overview{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>
+      <span>🏛️</span>
+      <span>Archive Overview</span>
+    </h1>
+    <p>Live metrics and quick administration of the Museum Management MySQL Database</p>
+  </div>
+  <div class="header-actions">
+    <a href="{{ url_for('add_artifact') }}" class="btn btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      <span>Catalog New Artifact</span>
+    </a>
+  </div>
+</div>
+
+<!-- Key Stat Counters -->
+<div class="stat-grid">
+  <a href="{{ url_for('list_artifacts') }}" class="stat-card">
+    <div class="stat-icon">🏺</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.artifacts }}</div>
+      <div class="stat-title">Total Artifacts</div>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_museums') }}" class="stat-card">
+    <div class="stat-icon">🏛️</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.museums }}</div>
+      <div class="stat-title">Total Museums</div>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_galleries') }}" class="stat-card">
+    <div class="stat-icon">🖼️</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.galleries }}</div>
+      <div class="stat-title">Total Galleries</div>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_donors') }}" class="stat-card">
+    <div class="stat-icon">💎</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.donors }}</div>
+      <div class="stat-title">Total Donors</div>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_curators') }}" class="stat-card">
+    <div class="stat-icon">🎓</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.curators }}</div>
+      <div class="stat-title">Total Curators</div>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_exhibitions') }}" class="stat-card">
+    <div class="stat-icon">📜</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.exhibitions }}</div>
+      <div class="stat-title">Total Exhibitions</div>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_restorations') }}" class="stat-card">
+    <div class="stat-icon">🔬</div>
+    <div class="stat-content">
+      <div class="stat-value">{{ stats.restorations }}</div>
+      <div class="stat-title">Restoration Records</div>
+    </div>
+  </a>
+</div>
+
+<!-- Quick Navigation Cards -->
+<div class="section-header">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+    </svg>
+    <span>Quick Management Hub</span>
+  </h2>
+</div>
+
+<div class="quick-nav-grid">
+  <a href="{{ url_for('list_artifacts') }}" class="quick-nav-card">
+    <div class="quick-nav-icon">🏺</div>
+    <div class="quick-nav-info">
+      <h3>Artifact Catalog</h3>
+      <p>Manage relics, age, monetary valuation, provenance, and assigned galleries.</p>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_museums') }}" class="quick-nav-card">
+    <div class="quick-nav-icon">🏛️</div>
+    <div class="quick-nav-info">
+      <h3>Museum Complexes</h3>
+      <p>Configure headquarters, branches, geographic locations, and contact info.</p>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_galleries') }}" class="quick-nav-card">
+    <div class="quick-nav-icon">🖼️</div>
+    <div class="quick-nav-info">
+      <h3>Display Galleries</h3>
+      <p>Organize exhibition halls, wings, and floor assignments across museums.</p>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_curators') }}" class="quick-nav-card">
+    <div class="quick-nav-icon">🎓</div>
+    <div class="quick-nav-info">
+      <h3>Curatorial Staff</h3>
+      <p>Keep track of academic qualifications, phone numbers, and relic custodians.</p>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_donors') }}" class="quick-nav-card">
+    <div class="quick-nav-icon">💎</div>
+    <div class="quick-nav-info">
+      <h3>Benefactors & Donors</h3>
+      <p>Patron archives, contact registry, and permanent donation associations.</p>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_exhibitions') }}" class="quick-nav-card">
+    <div class="quick-nav-icon">📜</div>
+    <div class="quick-nav-info">
+      <h3>Special Exhibitions</h3>
+      <p>Schedule seasonal events, active date ranges, and featured collections.</p>
+    </div>
+  </a>
+
+  <a href="{{ url_for('list_restorations') }}" class="quick-nav-card">
+    <div class="quick-nav-icon">🔬</div>
+    <div class="quick-nav-info">
+      <h3>Conservation & Restoration</h3>
+      <p>Log preservation costs, cataloging dates, and conservation treatment logs.</p>
+    </div>
+  </a>
+</div>
+
+<!-- Recent Records Section -->
+<div class="section-header">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12 6 12 12 16 14"></polyline>
+    </svg>
+    <span>Recently Cataloged Artifacts</span>
+  </h2>
+  <a href="{{ url_for('list_artifacts') }}" class="btn btn-secondary btn-sm">View All Artifacts &rarr;</a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Artifact Name</th>
+          <th>Material</th>
+          <th>Value (₹ / $)</th>
+          <th>Origin</th>
+          <th>Age</th>
+          <th>Gallery</th>
+          <th>Curator</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if recent_artifacts %}
+          {% for a in recent_artifacts %}
+            <tr>
+              <td><span class="table-id-badge">#{{ a.artifact_id }}</span></td>
+              <td><strong>{{ a.name }}</strong></td>
+              <td><span class="badge-tag badge-material">{{ a.material or 'N/A' }}</span></td>
+              <td class="price-tag">{{ a.value|format_price }}</td>
+              <td>{{ a.origin or '—' }}</td>
+              <td>{% if a.age %}{{ a.age }} yrs{% else %}—{% endif %}</td>
+              <td>{{ a.gallery_name or 'Unassigned' }}</td>
+              <td>{{ a.curator_name or 'Unassigned' }}</td>
+              <td style="text-align: right;">
+                <div class="action-buttons" style="justify-content: flex-end;">
+                  <a href="{{ url_for('edit_artifact', artifact_id=a.artifact_id) }}" class="btn-icon" title="Edit Artifact">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <p>No artifacts cataloged yet.</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
