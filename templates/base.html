@@ -134,9 +134,10 @@
         </div>
         
         <div class="topbar-right">
-          <div class="db-badge" title="Active Connection">
+          <div class="db-badge" title="Active Connection: {{ connected_db_host }}">
             <span class="status-dot"></span>
-            <span>museum_management</span>
+            <span>{{ connected_db_name }}</span>
+            <span style="opacity: 0.65; font-size: 0.72rem;">({{ connected_db_host }})</span>
           </div>
           
           <button class="theme-toggle-btn" id="themeToggleBtn" title="Switch Theme (Dark/Light)" aria-label="Toggle dark/light mode">

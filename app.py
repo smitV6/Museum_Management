@@ -4,54 +4,32 @@ from decimal import Decimal
 import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, flash
 
-app = Flask(__name__)
+from db import (
+    get_db_connection,
+    check_db_health,
+    DatabaseConfigError,
+    DatabaseConnectionError,
+    DatabaseQueryError,
+    MySQLError,
+)
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static"),
+)
 # Secret key for flash messaging and session protection
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "museum_archive_secret_key_2025")
 
-# Database Connection Configuration (matches existing MySQL database exactly)
-DB_CONFIG = {
-    "host": os.environ.get("DB_HOST", "localhost"),
-    "user": os.environ.get("DB_USER", "root"),
-    "password": os.environ.get("DB_PASSWORD", ""),  # Default to empty, falls back intelligently
-    "database": os.environ.get("DB_NAME", "museum_management"),
-}
 
-def get_db_connection():
-    """
-    Establish and return a connection to the existing MySQL database.
-    Attempts primary configuration and common local setups if auth fails.
-    """
-    configured_pwd = DB_CONFIG["password"]
-    passwords_to_try = [
-        configured_pwd,
-        "",
-        "YOUR_PASSWORD",
-        "root",
-        "admin",
-        "1234",
-        "123456",
-        "mysql",
-    ]
-    seen = set()
-    passwords = [p for p in passwords_to_try if not (p in seen or seen.add(p))]
-
-    last_err = None
-    for pwd in passwords:
-        try:
-            cfg = dict(DB_CONFIG)
-            cfg["password"] = pwd
-            conn = mysql.connector.connect(**cfg)
-            return conn
-        except mysql.connector.Error as err:
-            last_err = err
-            # Error 1045 is ER_ACCESS_DENIED_ERROR
-            if getattr(err, "errno", None) != 1045:
-                # If error is not auth (e.g. host unreachable or db not found), raise immediately
-                raise err
-
-    # If all passwords failed, raise the last auth error
-    if last_err:
-        raise last_err
+@app.context_processor
+def inject_db_info():
+    """Inject database host and name into all templates dynamically."""
+    return {
+        "connected_db_name": os.environ.get("DB_NAME", "museum_management"),
+        "connected_db_host": os.environ.get("DB_HOST", "Remote MySQL"),
+    }
 
 
 @app.template_filter("format_date")
@@ -73,6 +51,13 @@ def format_price_filter(val):
         return f"{float(val):,.2f}"
     except (ValueError, TypeError):
         return str(val)
+
+
+@app.route("/health")
+def health_check():
+    """Health check endpoint for deployment and status monitoring."""
+    is_healthy, details = check_db_health()
+    return details, (200 if is_healthy else 503)
 
 
 # ==============================================================================
@@ -141,7 +126,7 @@ def dashboard():
 
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Database connection error: {e}. Verify MySQL service is active.", "danger")
 
     return render_template(
@@ -226,7 +211,7 @@ def list_artifacts():
         artifacts = cursor.fetchall()
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Error fetching artifacts: {e}", "danger")
 
     return render_template(
@@ -311,7 +296,7 @@ def add_artifact():
         except ValueError as ve:
             flash(f"Invalid numeric input: {ve}", "danger")
             return redirect(url_for("add_artifact"))
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error saving artifact: {e}", "danger")
             return redirect(url_for("add_artifact"))
 
@@ -345,7 +330,7 @@ def add_artifact():
 
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Error loading dropdown references: {e}", "warning")
 
     return render_template(
@@ -432,7 +417,7 @@ def edit_artifact(artifact_id):
         except ValueError as ve:
             flash(f"Invalid numeric input: {ve}", "danger")
             return redirect(url_for("edit_artifact", artifact_id=artifact_id))
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error updating artifact: {e}", "danger")
             return redirect(url_for("edit_artifact", artifact_id=artifact_id))
 
@@ -476,7 +461,7 @@ def edit_artifact(artifact_id):
 
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Error loading artifact data: {e}", "danger")
         return redirect(url_for("list_artifacts"))
 
@@ -503,7 +488,7 @@ def delete_artifact(artifact_id):
         cursor.close()
         conn.close()
         flash(f"Artifact #{artifact_id} has been permanently deleted from MySQL.", "info")
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"MySQL Error deleting artifact #{artifact_id}: {e}", "danger")
 
     return redirect(url_for("list_artifacts"))
@@ -536,7 +521,7 @@ def list_museums():
         museums = cursor.fetchall()
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Error retrieving museums: {e}", "danger")
 
     return render_template(
@@ -585,7 +570,7 @@ def add_museum():
             flash(f"Museum '{name}' (ID #{museum_id}) successfully added to MySQL!", "success")
         except ValueError:
             flash("Museum ID must be an integer.", "danger")
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error inserting museum: {e}", "danger")
 
         return redirect(url_for("list_museums"))
@@ -620,7 +605,7 @@ def edit_museum(museum_id):
 
             flash(f"Museum #{museum_id} updated successfully in MySQL!", "success")
             return redirect(url_for("list_museums"))
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error updating museum #{museum_id}: {e}", "danger")
             cursor.close()
             conn.close()
@@ -660,7 +645,7 @@ def delete_museum(museum_id):
         cursor.close()
         conn.close()
         flash(f"Museum #{museum_id} deleted successfully from MySQL.", "info")
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Cannot delete Museum #{museum_id}: {e}. Ensure no dependent galleries reference it.", "danger")
 
     return redirect(url_for("list_museums"))
@@ -710,7 +695,7 @@ def list_galleries():
         galleries = cursor.fetchall()
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Error fetching galleries: {e}", "danger")
 
     return render_template(
@@ -764,7 +749,7 @@ def add_gallery():
             flash(f"Gallery '{name}' (ID #{gallery_id}) added successfully to MySQL!", "success")
         except ValueError:
             flash("Gallery ID and Floor Number must be valid integers.", "danger")
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error inserting gallery: {e}", "danger")
 
         return redirect(url_for("list_galleries"))
@@ -805,7 +790,7 @@ def edit_gallery(gallery_id):
             return redirect(url_for("list_galleries"))
         except ValueError:
             flash("Floor Number must be an integer.", "danger")
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error updating gallery #{gallery_id}: {e}", "danger")
             cursor.close()
             conn.close()
@@ -852,7 +837,7 @@ def delete_gallery(gallery_id):
         cursor.close()
         conn.close()
         flash(f"Gallery #{gallery_id} deleted successfully from MySQL.", "info")
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Cannot delete Gallery #{gallery_id}: {e}. Ensure no artifacts reference this gallery.", "danger")
 
     return redirect(url_for("list_galleries"))
@@ -885,7 +870,7 @@ def list_curators():
         curators = cursor.fetchall()
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Error fetching curators: {e}", "danger")
 
     return render_template(
@@ -934,7 +919,7 @@ def add_curator():
             flash(f"Curator '{name}' (ID #{curator_id}) registered successfully in MySQL!", "success")
         except ValueError:
             flash("Curator ID must be an integer.", "danger")
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error adding curator: {e}", "danger")
 
         return redirect(url_for("list_curators"))
@@ -968,7 +953,7 @@ def edit_curator(curator_id):
 
             flash(f"Curator #{curator_id} updated successfully in MySQL!", "success")
             return redirect(url_for("list_curators"))
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error updating curator #{curator_id}: {e}", "danger")
             cursor.close()
             conn.close()
@@ -1007,7 +992,7 @@ def delete_curator(curator_id):
         cursor.close()
         conn.close()
         flash(f"Curator #{curator_id} deleted successfully from MySQL.", "info")
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Cannot delete Curator #{curator_id}: {e}. Ensure no artifacts reference this curator.", "danger")
 
     return redirect(url_for("list_curators"))
@@ -1040,7 +1025,7 @@ def list_donors():
         donors = cursor.fetchall()
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Error fetching donors: {e}", "danger")
 
     return render_template(
@@ -1089,7 +1074,7 @@ def add_donor():
             flash(f"Donor '{name}' (ID #{donor_id}) successfully registered in MySQL!", "success")
         except ValueError:
             flash("Donor ID must be an integer.", "danger")
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error inserting donor: {e}", "danger")
 
         return redirect(url_for("list_donors"))
@@ -1123,7 +1108,7 @@ def edit_donor(donor_id):
 
             flash(f"Donor #{donor_id} updated successfully in MySQL!", "success")
             return redirect(url_for("list_donors"))
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error updating donor #{donor_id}: {e}", "danger")
             cursor.close()
             conn.close()
@@ -1162,7 +1147,7 @@ def delete_donor(donor_id):
         cursor.close()
         conn.close()
         flash(f"Donor #{donor_id} deleted successfully from MySQL.", "info")
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Cannot delete Donor #{donor_id}: {e}. Ensure no artifacts reference this donor.", "danger")
 
     return redirect(url_for("list_donors"))
@@ -1195,7 +1180,7 @@ def list_exhibitions():
         exhibitions = cursor.fetchall()
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Error fetching exhibitions: {e}", "danger")
 
     return render_template(
@@ -1244,7 +1229,7 @@ def add_exhibition():
             flash(f"Exhibition '{title}' (ID #{exhibition_id}) scheduled successfully in MySQL!", "success")
         except ValueError:
             flash("Exhibition ID must be an integer.", "danger")
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error inserting exhibition: {e}", "danger")
 
         return redirect(url_for("list_exhibitions"))
@@ -1278,7 +1263,7 @@ def edit_exhibition(exhibition_id):
 
             flash(f"Exhibition #{exhibition_id} updated successfully in MySQL!", "success")
             return redirect(url_for("list_exhibitions"))
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error updating exhibition #{exhibition_id}: {e}", "danger")
             cursor.close()
             conn.close()
@@ -1317,7 +1302,7 @@ def delete_exhibition(exhibition_id):
         cursor.close()
         conn.close()
         flash(f"Exhibition #{exhibition_id} deleted successfully from MySQL.", "info")
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Cannot delete Exhibition #{exhibition_id}: {e}. Ensure no artifacts reference this exhibition.", "danger")
 
     return redirect(url_for("list_exhibitions"))
@@ -1352,7 +1337,7 @@ def list_restorations():
         restorations = cursor.fetchall()
         cursor.close()
         conn.close()
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Error fetching restoration logs: {e}", "danger")
 
     return render_template(
@@ -1410,7 +1395,7 @@ def add_restoration():
             flash(f"Restoration log #{restoration_id} created successfully in MySQL!", "success")
         except ValueError:
             flash("Restoration ID and Maintenance Cost must be valid numbers.", "danger")
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error inserting restoration log: {e}", "danger")
 
         return redirect(url_for("list_restorations"))
@@ -1449,7 +1434,7 @@ def edit_restoration(restoration_id):
             return redirect(url_for("list_restorations"))
         except ValueError:
             flash("Maintenance Cost must be a valid number.", "danger")
-        except mysql.connector.Error as e:
+        except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
             flash(f"MySQL Error updating restoration log #{restoration_id}: {e}", "danger")
             cursor.close()
             conn.close()
@@ -1488,7 +1473,7 @@ def delete_restoration(restoration_id):
         cursor.close()
         conn.close()
         flash(f"Restoration log #{restoration_id} deleted successfully from MySQL.", "info")
-    except mysql.connector.Error as e:
+    except (DatabaseConfigError, DatabaseConnectionError, MySQLError, Exception) as e:
         flash(f"Cannot delete Restoration log #{restoration_id}: {e}. Ensure no artifacts reference this record.", "danger")
 
     return redirect(url_for("list_restorations"))
@@ -1499,5 +1484,5 @@ def delete_restoration(restoration_id):
 # ==============================================================================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"Starting Museum Management System on http://127.0.0.1:{port}")
+    print(f"Starting Museum Management System on port {port}")
     app.run(host="0.0.0.0", port=port, debug=True)
